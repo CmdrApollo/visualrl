@@ -12,3 +12,6 @@ screen = pygame.Surface((WIDTH, HEIGHT))
 
 def lerp(a, b, t):
     return a + (b - a) * t
+
+def sign(x):
+    return (x > 0) - (x < 0)

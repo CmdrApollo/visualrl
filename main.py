@@ -9,8 +9,11 @@ from constants import *
 from src.entity import Entity
 from src.draw import *
 
-from src.scene import SceneManager, GameScene, OverworldScene
+from src.scene import SceneManager, GameScene, OverworldScene, MainMenuScene
 from src.AudioHandler import AudioHandler
+
+TITLE_IMAGE = pygame.image.load(os.path.join("assets", "gfx", "title.png"))
+TITLE_IMAGE.set_colorkey((0, 0, 0))
 
 def main():
     clock = pygame.time.Clock()
@@ -25,9 +28,14 @@ def main():
     audio_handler.play_song("exploration_theme", loops=-1)
 
     scene_manager = SceneManager()
+    
+    main_menu_scene = MainMenuScene()
     overworld_scene = OverworldScene("world.txt")
+
+    scene_manager.add_scene("Main Menu", main_menu_scene)
     scene_manager.add_scene("Overworld", overworld_scene)
-    scene_manager.set_current_scene("Overworld")
+    
+    scene_manager.set_current_scene("Main Menu")
 
     run = True
     while run:
@@ -40,8 +48,13 @@ def main():
             if event.type == pygame.QUIT:
                 run = False
             elif event.type == pygame.KEYDOWN:
-                scene_manager.current_scene.on_input(event.key, audio_handler)
-        
+                _scene = scene_manager.current_scene.on_input(event.key, audio_handler)
+                if _scene:
+                    if _scene == "Exit":
+                        run = False
+                    else:
+                        scene_manager.set_current_scene(_scene)
+
         scene_manager.current_scene.update(delta, audio_handler)
 
         screen.fill('black')

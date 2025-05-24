@@ -7,6 +7,8 @@ TILESHEET = pygame.image.load(os.path.join("assets", "gfx", "tilesheet.png")).co
 
 TILESHEET.set_colorkey((0, 0, 0))
 
+global_font = 'comicsansms'
+
 class Colors:
     RED = '#FF8080'
     GREEN = '#80FF80'
@@ -32,3 +34,11 @@ def draw_tile(screen, x, y, index, alpha=False, rotation=0):
         s = pygame.transform.rotate(s, rotation)
 
     screen.blit(s, (x * TILESIZE + TILESIZE / 2 - s.get_width() / 2, y * TILESIZE + TILESIZE / 2 - s.get_height() / 2))
+
+def draw_text(screen, text, x, y, color='white', font_size=24, center=False):
+    font = pygame.font.SysFont(global_font, font_size)
+    text_surface = font.render(text, True, color)
+    if center:
+        screen.blit(text_surface, (x * TILESIZE + TILESIZE / 2 - text_surface.get_width() / 2, y * TILESIZE + TILESIZE / 2 - text_surface.get_height() / 2))
+    else:
+        screen.blit(text_surface, (x * TILESIZE, y * TILESIZE))

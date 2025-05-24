@@ -7,6 +7,8 @@ from constants import WORLD_WIDTH, WORLD_HEIGHT, lerp
 from .entity import Entity
 from .draw import *
 
+arrow_tile = 0xff
+
 class SceneManager:
     def __init__(self):
         self.scenes = {}
@@ -36,23 +38,67 @@ class GameScene:
         pass
 
 def load_from_file(filename):
-    world = []
+    zipped = []
     try:
         with open(filename, 'r') as f:
             for line in f:
-                world.extend(int(x) for x in line.split())
+                zipped.extend(int(x) for x in line.split())
     except FileNotFoundError:
         print(f"File {filename} not found. Generating default world.")
-        world = [1] * (WORLD_WIDTH * WORLD_HEIGHT)
-    return world
+        world, passable = [1] * (WORLD_WIDTH * WORLD_HEIGHT), [True] * (WORLD_WIDTH * WORLD_HEIGHT)
+        return world, passable
+
+    world = zipped[::2]
+    passable = zipped[1::2]
+
+    return world, passable
+
+class MainMenuScene(GameScene):
+    def __init__(self):
+        super().__init__("Main Menu")
+        self.title_image = pygame.image.load(os.path.join("assets", "gfx", "title.png"))
+        self.title_image.set_colorkey((0, 0, 0))
+
+        self.selected_option = 0
+
+    def on_input(self, key, audio=None):
+        if key == pygame.K_UP:
+            self.selected_option = (self.selected_option - 1) % 3
+        elif key == pygame.K_DOWN:
+            self.selected_option = (self.selected_option + 1) % 3
+        elif key == pygame.K_RETURN:
+            if self.selected_option == 0:
+                return "Overworld"
+            if self.selected_option == 1:
+                return "Overworld"
+            elif self.selected_option == 2:
+                return "Exit"
+
+    def draw(self, screen):
+        t = pygame.time.get_ticks() / 70
+        t %= TILESIZE
+
+        for x in range(WORLD_WIDTH + 1):
+            for y in range(WORLD_HEIGHT + 1):
+                if (x + y) % 2 == 0:
+                    pygame.draw.rect(screen, '#202020', (x * TILESIZE - t, y * TILESIZE - t, TILESIZE, TILESIZE))
+
+        screen.blit(self.title_image, (WIDTH // 2 - self.title_image.get_width() // 2, 5 + 5 * math.sin(pygame.time.get_ticks() / 500)))
+        ax = WORLD_WIDTH // 2 - 3
+        ay = 8.5 + self.selected_option
+        draw_tile(screen, ax + math.sin(pygame.time.get_ticks() / 250) * 0.1, ay, arrow_tile, True, 0)
+
+        draw_text(screen, "New Game", WORLD_WIDTH // 2, 8.5, 'white', center=True)
+        draw_text(screen, "Old Game", WORLD_WIDTH // 2, 9.5, 'white', center=True)
+        draw_text(screen, "Don't Play", WORLD_WIDTH // 2, 10.5, 'white', center=True)
 
 class OverworldScene(GameScene):
     def __init__(self, filename):
         super().__init__("Overworld")
-        self.player = Entity(5, 5, 0x80)
+        self.player = Entity(1, 1, 0x80)
         self.entities = [Entity(3, 7, 0x81)]
-        self.world = load_from_file(filename)
-        self.tx, self.ty = 5, 5
+        self.world, self.passable = load_from_file(filename)
+        self.tx, self.ty = 1, 1
 
     def generate_world(self):
         self.world.clear()
@@ -82,7 +128,7 @@ class OverworldScene(GameScene):
         self.tx += ax
         self.ty += ay
 
-        if self.world[self.ty * WORLD_WIDTH + self.tx] == 0:
+        if not self.passable[self.ty * WORLD_WIDTH + self.tx]:
             self.tx -= ax
             self.ty -= ay
         else:
@@ -103,7 +149,8 @@ class OverworldScene(GameScene):
     def draw(self, screen):
         for x in range(WORLD_WIDTH):
             for y in range(WORLD_HEIGHT):
-                draw_tile(screen, x, y, self.world[y * WORLD_WIDTH + x])
+                t = self.world[y * WORLD_WIDTH + x]
+                draw_tile(screen, x, y, t)
 
         for entity in self.entities:
             entity.draw(screen)

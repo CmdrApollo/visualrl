@@ -13,20 +13,25 @@ from src.scene import SceneManager, GameScene, OverworldScene
 from src.AudioHandler import AudioHandler
 
 def load_from_file(filename):
-    world = []
+    zipped = []
     try:
         with open(filename, 'r') as f:
             for line in f:
-                world.extend(int(x) for x in line.split())
+                zipped.extend(int(x) for x in line.split())
     except FileNotFoundError:
         print(f"File {filename} not found. Generating default world.")
-        world = [1] * (WORLD_WIDTH * WORLD_HEIGHT)
-    return world
+        world, passable = [1] * (WORLD_WIDTH * WORLD_HEIGHT), [True] * (WORLD_WIDTH * WORLD_HEIGHT)
+        return world, passable
+
+    world = zipped[::2]
+    passable = zipped[1::2]
+
+    return world, passable
 
 def main():
     clock = pygame.time.Clock()
     
-    world = load_from_file('world.txt')
+    world, passable = load_from_file('world.txt')
 
     selected_tile = 0
 
@@ -35,6 +40,7 @@ def main():
         delta = clock.tick_busy_loop(60) / 1000.0
 
         tab = pygame.key.get_pressed()[pygame.K_TAB]
+        ctrl = pygame.key.get_pressed()[pygame.K_LCTRL]
 
         if delta:
             pygame.display.set_caption(f"{GAMENAME} - FPS: {int(1 / delta)}")
@@ -42,22 +48,29 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1 and ctrl:
+                    mx, my = event.pos
+                    x = mx // 2 // TILESIZE
+                    y = my // 2 // TILESIZE
+                    if 0 <= x < WORLD_WIDTH and 0 <= y < WORLD_HEIGHT:
+                        passable[y * WORLD_WIDTH + x] = not passable[y * WORLD_WIDTH + x]
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_s:
                     with open('world.txt', 'w') as f:
                         for i in range(WORLD_HEIGHT):
                             for j in range(WORLD_WIDTH):
-                                f.write(f"{world[i * WORLD_WIDTH + j]} ")
+                                f.write(f"{world[i * WORLD_WIDTH + j]} {int(passable[i * WORLD_WIDTH + j])} ")
                             f.write("\n")
                         
         if pygame.mouse.get_pressed()[0]:
-            mx, my = event.pos
-            x = mx // TILESIZE
-            y = my // TILESIZE
+            mx, my = pygame.mouse.get_pos()
+            x = mx // 2 // TILESIZE
+            y = my // 2 // TILESIZE
 
             if tab:
                 selected_tile = (y * 16 + x) % 128
-            else:
+            elif not ctrl:
                 if 0 <= x < WORLD_WIDTH and 0 <= y < WORLD_HEIGHT:
                     world[y * WORLD_WIDTH + x] = selected_tile
 
@@ -80,8 +93,10 @@ def main():
                     tile_id = world[y * WORLD_WIDTH + x]
                     if tile_id is not None:
                         draw_tile(screen, x, y, tile_id)
+                        if ctrl and not passable[y * WORLD_WIDTH + x]:
+                            pygame.draw.rect(screen, 'red', (x * TILESIZE, y * TILESIZE, TILESIZE, TILESIZE), 2)
 
-        WIN.blit(screen, (0, 0))
+        WIN.blit(pygame.transform.scale(screen, (WIDTH * 2, HEIGHT * 2)), (0, 0))
 
         pygame.display.flip()
 

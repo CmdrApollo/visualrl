@@ -1,7 +1,7 @@
 from .draw import *
 
 class Entity:
-    def __init__(self, x, y, t_id, alpha=True):
+    def __init__(self, x, y, t_id, nframes=1, alpha=True):
         self.x = x
         self.y = y
         self.t_id = t_id
