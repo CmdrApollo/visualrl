@@ -6,6 +6,7 @@ from constants import WORLD_WIDTH, WORLD_HEIGHT, lerp
 
 from .entity import Entity
 from .draw import *
+from .menu import *
 
 arrow_tile = 0xff
 
@@ -96,9 +97,11 @@ class OverworldScene(GameScene):
     def __init__(self, filename):
         super().__init__("Overworld")
         self.player = Entity(1, 1, 0x80)
-        self.entities = [Entity(3, 7, 0x81)]
+        self.entities = [Entity(3,7, 0x90)]
         self.world, self.passable = load_from_file(filename)
         self.tx, self.ty = 1, 1
+
+        self.current_enemies = [Entity(-1, -1, 0x90)]
 
     def generate_world(self):
         self.world.clear()
@@ -134,6 +137,9 @@ class OverworldScene(GameScene):
         else:
             if audio and (ax or ay):
                 audio.play_sound("walk")
+        
+        if key == pygame.K_b:
+            return "Battle"
 
     def update(self, delta, audio=None):
         self.player.x = lerp(self.player.x, self.tx, 0.2)
@@ -156,3 +162,72 @@ class OverworldScene(GameScene):
             entity.draw(screen)
 
         self.player.draw(screen)
+
+class BattleScene(GameScene):
+    def __init__(self, player, enemies):
+        super().__init__("Battle")
+        self.player = player
+        self.enemies = enemies
+
+        self.manager = MenuManager()
+        self.manager.open_menu(MenuObject())
+
+        self.manager.menus[-1].items.append(MenuObject("Attack"))
+        self.manager.menus[-1].items.append(MenuObject("Defend"))
+        self.manager.menus[-1].items.append(MenuObject("Items"))
+        self.manager.menus[-1].items.append(MenuObject("Run"))
+
+        self.manager.menus[-1].build()
+
+        self.entered = False
+
+    def on_input(self, key, audio=None):
+        if key == pygame.K_UP:
+            self.manager.Navigate(0, -1)
+        elif key == pygame.K_DOWN:
+            self.manager.Navigate(0, 1)
+        elif key == pygame.K_LEFT:
+            self.manager.Navigate(-1, 0)
+        elif key == pygame.K_RIGHT:
+            self.manager.Navigate(1, 0)
+        elif key == pygame.K_RETURN:
+            selected_item = self.manager.Confirm()
+            if not selected_item:
+                return
+            
+            selected_item = selected_item[-1]
+
+            if selected_item == "Attack":
+                print("Attack selected")
+            elif selected_item == "Defend":
+                print("Defend selected")
+            elif selected_item == "Items":
+                print("Items selected")
+            elif selected_item == "Run":
+                print("Run selected")
+                return "Overworld"
+
+    def update(self, delta, audio=None):
+        if not self.entered:
+            self.entered = True
+            if audio:
+                audio.play_song("battle_theme", loops=-1)
+        pass  # Battle logic would go here
+
+    def draw(self, screen):
+
+        t = pygame.time.get_ticks() / 70
+        t %= TILESIZE
+
+        for x in range(WORLD_WIDTH + 1):
+            for y in range(WORLD_HEIGHT + 1):
+                if (x + y) % 2 == 0:
+                    pygame.draw.rect(screen, '#202020', (x * TILESIZE - t, y * TILESIZE - t, TILESIZE, TILESIZE))
+
+        x = WORLD_WIDTH // 2 - 1
+        y = WORLD_HEIGHT // 2 - 1
+
+        for e in self.enemies:
+            e.draw_battle(screen, x, y)
+        
+        self.manager.draw(screen, pygame.Vector2(0, HEIGHT / 2))

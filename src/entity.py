@@ -11,6 +11,9 @@ class Entity:
     def draw(self, screen):
         draw_tile(screen, self.x, self.y, self.t_id, self.alpha, self.rotation)
 
+    def draw_battle(self, screen, x, y):
+        draw_tile(screen, x, y, self.t_id, self.alpha, self.rotation, 2)
+
     def move(self, dx, dy):
         self.x += dx
         self.y += dy

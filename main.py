@@ -9,7 +9,7 @@ from constants import *
 from src.entity import Entity
 from src.draw import *
 
-from src.scene import SceneManager, GameScene, OverworldScene, MainMenuScene
+from src.scene import SceneManager, BattleScene, OverworldScene, MainMenuScene
 from src.AudioHandler import AudioHandler
 
 TITLE_IMAGE = pygame.image.load(os.path.join("assets", "gfx", "title.png"))
@@ -31,9 +31,11 @@ def main():
     
     main_menu_scene = MainMenuScene()
     overworld_scene = OverworldScene("world.txt")
+    battle_scene = BattleScene(overworld_scene.player, overworld_scene.current_enemies)
 
     scene_manager.add_scene("Main Menu", main_menu_scene)
     scene_manager.add_scene("Overworld", overworld_scene)
+    scene_manager.add_scene("Battle", battle_scene)
     
     scene_manager.set_current_scene("Main Menu")
 
